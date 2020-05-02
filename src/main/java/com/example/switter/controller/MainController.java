@@ -3,12 +3,15 @@ package com.example.switter.controller;
 import com.example.switter.domain.Message;
 import com.example.switter.domain.User;
 import com.example.switter.repos.MessageRepo;
+import com.example.switter.repos.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.lang.reflect.Method;
 import java.util.Map;
 
 @Controller
@@ -17,16 +20,44 @@ public class MainController {
     @Autowired
     private MessageRepo messageRepo;
 
+    @Autowired
+    private UserRepo userRepo;
+
     @GetMapping("/")
     public String greeting() {
         return "greeting";
     }
 
     @GetMapping("/main")
-    public String main(Map<String, Object> model) {
+    public String main(@RequestParam(required = false, defaultValue = "-1") String filter,
+                       @RequestParam(required = false, name = "author", defaultValue = "-2") String username, Model model) {
         Iterable<Message> messages = messageRepo.findAll();
 
-        model.put("messages", messages);
+        if (!filter.equals("-1")) {
+            if (filter != null && !filter.isEmpty()) {
+                messages = messageRepo.findByTag(filter);
+            } else {
+                messages = messageRepo.findAll();
+            }
+            model.addAttribute("filter", filter);
+        } else {
+            model.addAttribute("filter", "");
+        }
+
+        if (!username.equals("-2")) {
+            if (username != null && !username.isEmpty()) {
+                User author = userRepo.findByUsername(username);
+                messages = messageRepo.findByAuthor(author);
+            }
+            if (username.isEmpty()) {
+                messages = messageRepo.findAll();
+            }
+            model.addAttribute("author", username);
+        } else {
+            model.addAttribute("author", "");
+        }
+
+        model.addAttribute("messages", messages);
 
         return "main";
     }
@@ -39,20 +70,6 @@ public class MainController {
         messageRepo.save(new Message(text, tag, user));
 
         Iterable<Message> messages = messageRepo.findAll();
-
-        model.put("messages", messages);
-
-        return "main";
-    }
-
-    @PostMapping("filter")
-    public String getByFilter(@RequestParam String filter, Map<String, Object> model) {
-        Iterable<Message> messages;
-        if (filter != null && !filter.isEmpty()) {
-            messages = messageRepo.findByTag(filter);
-        } else {
-            messages = messageRepo.findAll();
-        }
 
         model.put("messages", messages);
 
