@@ -4,6 +4,7 @@
 <@c.page>
     <div>
         <@l.logout />
+        <span><a href="/user">Users</a> </span>
     </div>
     <br>
     <strong>Добавить запись:</strong>
